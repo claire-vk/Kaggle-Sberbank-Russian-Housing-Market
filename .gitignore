@@ -1,0 +1,7 @@
+*.csv
+*.rds
+*.rda
+*.RData
+*.html
+/archive/*
+*.png
