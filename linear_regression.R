@@ -120,9 +120,9 @@ model_2 = lm(price_doc ~ . - id - usdrub - cpi - mortgage_rate - micex - timesta
 summary(model_2)
 vif(model_2)
 
-# VIF is higher than 5 for preschool_km, public_healthcare_km, swim_pool_km, 
+# VIF is higher than 5 for preschool_km, public_healthcare_km, swim_pool_km, big_church_km ,
 # public_transport_station_km, kindergarten_km, hospice_morgue_km so removing them
-model_2a = update(model_2, ~ . -preschool_km - public_healthcare_km - swim_pool_km - public_transport_station_km - kindergarten_km - hospice_morgue_km)
+model_2a = update(model_2, ~ . -preschool_km - public_healthcare_km - swim_pool_km - public_transport_station_km - kindergarten_km - hospice_morgue_km - big_church_km )
 summary(model_2a)
 vif(model_2a)
 
@@ -134,62 +134,64 @@ write.csv(prediction_2, "prediction_2.csv", row.names=F)
 ##Improved score by 78 from method 2##
 
 ##### METHOD 3 - Linear Regression, same as METHOD 2 + take macro into account in model #####
+train_reduced_2 = read.csv("train_reduced.csv", stringsAsFactors = FALSE)
+test_reduced_2 = read.csv("test_reduced.csv", stringsAsFactors = FALSE)
+
+train_reduced_2 = subset(train_reduced_2, select = -c(X))
+test_reduced_2 = subset(test_reduced_2, select = -c(X))
+
+train_reduced_2$price_doc = log(train_reduced_2$price_doc+1)
+
+model_3 = lm(price_doc ~ . - id - timestamp, data = train_reduced_2)
+
+summary(model_3)
+vif(model_3)
+
+# VIF is higher than 5 for preschool_km, public_healthcare_km, swim_pool_km, big_church_km,
+# public_transport_station_km, kindergarten_km, hospice_morgue_km so removing them
+model_3a = update(model_3, ~ . -preschool_km - public_healthcare_km - swim_pool_km - public_transport_station_km - kindergarten_km - hospice_morgue_km - big_church_km)
+summary(model_3a)
+vif(model_3a)
+
+prediction_3 = predict(model_3a,test_reduced_2) 
+prediction_3 = exp(prediction_3)-1
+prediction_3 = data.frame(id=test$id, price_doc=prediction_3)
+write.csv(prediction_3, "prediction_3.csv", row.names=F)
+
+## adding macro did not help with the score...###
+
+##### METHOD 4 - same as model 3 with less macro data #####
+train_reduced_3 = read.csv("train_reduced.csv", stringsAsFactors = FALSE)
+test_reduced_3 = read.csv("test_reduced.csv", stringsAsFactors = FALSE)
+
+train_reduced_3 = subset(train_reduced_3, select = -c(X))
+test_reduced_3 = subset(test_reduced_3, select = -c(X))
+
+train_reduced_3$price_doc = log(train_reduced_3$price_doc+1)
+
+model_4 = lm(price_doc ~ . - id - timestamp - usdrub - micex, data = train_reduced_3)
+
+summary(model_4)
+vif(model_4)
+
+# VIF is higher than 5 for preschool_km, public_healthcare_km, swim_pool_km, big_church_km,
+# public_transport_station_km, kindergarten_km, hospice_morgue_km so removing them
+model_4a = update(model_4, ~ . -preschool_km - public_healthcare_km - swim_pool_km - public_transport_station_km - kindergarten_km - hospice_morgue_km - big_church_km)
+summary(model_4a)
+vif(model_4a)
+
+prediction_4 = predict(model_4a,test_reduced_3) 
+prediction_4 = exp(prediction_4)-1
+prediction_4 = data.frame(id=test$id, price_doc=prediction_4)
+write.csv(prediction_4, "prediction_4.csv", row.names=F)
 
 
+## tweaking the macro does not help. Doing some feature engineering
 
 
+# Moving on to another model for now. Will 
+# also tranform the macro data to help with predictions a bit later ##
+
+##### Elastic Net #####
 
 
-
-
-
-
-
-
-
-##### Improve upon the model #####
-### use variables from random forest ###
-# use variables for which feature importance is >= 80
-top_80 = c("full_sq", "life_sq", "floor", "build_year", "max_floor", "kitch_sq",
-           "state", "additional_education_km", "public_transport_station_km", 
-           "num_room", "ID_metro", "big_church_km", "sub_area",
-           "preschool_km", "cafe_avg_price_500", "big_road2_km", "green_zone_km",
-           "kindergarten_km", "catering_km", "big_road1_km", 
-           "public_healthcare_km", "hospice_morgue_km", "swim_pool_km", "material", 
-           "green_part_1000", "railroad_km", "industrial_km", "cemetery_km",
-           "fitness_km", "theater_km", "radiation_km", "price_doc", "id")
-
-top_80_noprice = c("full_sq", "life_sq", "floor", "build_year", "max_floor", "kitch_sq",
-                   "state", "additional_education_km", "public_transport_station_km", 
-                   "num_room", "ID_metro", "big_church_km", "sub_area",
-                   "preschool_km", "cafe_avg_price_500", "big_road2_km", "green_zone_km",
-                   "kindergarten_km", "catering_km", "big_road1_km", 
-                   "public_healthcare_km", "hospice_morgue_km", "swim_pool_km", "material", 
-                   "green_part_1000", "railroad_km", "industrial_km", "cemetery_km",
-                   "fitness_km", "theater_km", "radiation_km", "id")
-
-
-train_top80 = subset(train, select= top_80)
-test_top80 = subset(test, select= top_80_noprice)
-
-str(train_top80)
-str(test_top80)
-
-# convert variables to factor type
-# convert state and sub_area variables to factor
-train_top80$floor = factor(train_top80$floor)
-test_top80$floor = factor(test_top80$floor)
-
-test_top35_reduced$state = factor(test_top35_reduced$state)
-test_top35_reduced$sub_area = factor(test_top35_reduced$sub_area)
-
-# impute missing values
-
-# scale dataframe
-
-
-# look at importance of state in price_doc
-
-
-
-summary(model_1)
