@@ -185,12 +185,189 @@ prediction_4 = exp(prediction_4)-1
 prediction_4 = data.frame(id=test$id, price_doc=prediction_4)
 write.csv(prediction_4, "prediction_4.csv", row.names=F)
 
+##### METHOD 5 #####
+## tweaking the macro does not help. Doing some feature engineering (in python)
+# Feature engineering revealed new important variables. We'll use them.
 
-## tweaking the macro does not help. Doing some feature engineering
+train_2 = read.csv("train_cleaned_2.csv", stringsAsFactors = FALSE)
+test_2 = read.csv("test_cleaned_2.csv", stringsAsFactors = FALSE)
+
+train_2$price_doc = log(train_2$price_doc+1)
+
+top_feat = c("full_sq", "life_sq", "build_year", "year_month", "floor", "additional_education_km", "catering_km", 
+            "big_church_km", "public_healthcare_km", "railroad_km", "preschool_km", "industrial_km", 
+            "radiation_km", "big_road1_km", "public_transport_station_km", "cemetery_km",
+            "swim_pool_km", "green_zone_km", "big_road2_km", "hospice_morgue_km", "fitness_km",
+            "kindergarten_km", "max_floor", "extra_sq", "green_part_1000", "ratio_life_sq_full_sq",
+            "age_house", "ratio_kitch_sq_full_sq", "ratio_preschool", "ratio_floor_max_floor",
+            "sales_per_month", "ratio_kitch_sq_life_sq", "kitch_sq",
+            "preschool_quota", "month", "sub_area", "area_m", "state", "pop_density_raion",
+            "full_all", "ratio_school", "ekder_all", "num_room", "school_quota",
+            "retire_proportion", "raion_popul", "year", 'price_doc')
+
+# turn categorical variables into factor
+cat_feat = c("build_year", "year_month", "floor", "max_floor", 
+             "month", "sub_area", "state", "year")
+
+# scale and center numeric vectors
+num_feat = c("full_sq", "life_sq", "additional_education_km", "catering_km",
+             "big_church_km", "public_healthcare_km", "railroad_km", "preschool_km", "industrial_km", 
+             "radiation_km", "big_road1_km", "public_transport_station_km", "cemetery_km",
+             "swim_pool_km", "green_zone_km", "big_road2_km", "hospice_morgue_km", "fitness_km",
+             "kindergarten_km","extra_sq", "green_part_1000", "ratio_life_sq_full_sq",
+             "age_house", "ratio_kitch_sq_full_sq", "ratio_preschool", "ratio_floor_max_floor",
+             "sales_per_month", "ratio_kitch_sq_life_sq", "kitch_sq", "preschool_quota",
+             "area_m", "pop_density_raion",
+             "full_all", "ratio_school", "ekder_all", "num_room", "school_quota",
+             "retire_proportion", "raion_popul")
 
 
-# Moving on to another model for now. Will 
-# also tranform the macro data to help with predictions a bit later ##
+train_lnr_cat = subset(train_2, select= cat_feat)
+test_lnr_cat = subset(test_2, select= cat_feat)
+ifelse(n <- sapply(train_lnr_cat, function(x) length(levels(x))) == 1, "DROP", "NODROP") # check if factors have more than 1 level
+
+train_lnr_num = subset(train_2, select= num_feat)
+test_lnr_num = subset(test_2, select= num_feat)
+
+f_factor=function(x){
+  x = as.factor(x) #turn into factor type
+}
+
+f_numeric=function(x){
+  x = as.numeric(x) #turn into numeric type
+}
+
+train_lnr_cat=data.frame(apply(train_lnr_cat,2,f_factor))
+test_lnr_cat=data.frame(apply(test_lnr_cat,2,f_factor))
+sapply(train_lnr_cat,class) # checking that it worked
+
+train_lnr_num=data.frame(apply(train_lnr_num,2,f_numeric))
+test_lnr_num=data.frame(apply(test_lnr_num,2,f_numeric))
+sapply(train_lnr_num,class) # checking that it worked
+
+
+# scaling the numeric values
+train_lnr_num = scale(train_lnr_num)
+test_lnr_num = scale(test_lnr_num)
+
+train_lnr = cbind(train_lnr_num, train_lnr_cat)
+test_lnr = cbind(test_lnr_num, test_lnr_cat)
+
+train_lnr = cbind(train_lnr, train_2$price_doc) # adding the price col
+train_lnr = as.data.frame(train_lnr)  # turning into dataframe
+
+names(train_lnr)[names(train_lnr) == 'train_2$price_doc'] = 'price_doc' # changing col name
+
+test_lnr = as.data.frame(test_lnr) # turning test into df
+
+which(sapply(train_lnr, function(x) length(unique(x))<2)) # check if factors have less than 2 levels
+# ratio preschool is problematic so we will remove it
+
+
+# restart with less variables
+
+train_2 = read.csv("train_cleaned_2.csv", stringsAsFactors = FALSE)
+test_2 = read.csv("test_cleaned_2.csv", stringsAsFactors = FALSE)
+
+train_reduced_2 = subset(train_2, select = -c(X))
+test_reduced_2 = subset(test_2, select = -c(X))
+
+train_2$price_doc = log(train_2$price_doc+1)
+
+top_feat = c("full_sq", "life_sq", "additional_education_km", "catering_km",
+             "big_church_km", "public_healthcare_km", "railroad_km", "preschool_km", "industrial_km", 
+             "radiation_km", "big_road1_km", "public_transport_station_km", "cemetery_km",
+             "swim_pool_km", "green_zone_km", "big_road2_km", "hospice_morgue_km", "fitness_km",
+             "kindergarten_km", "green_part_1000", "ratio_life_sq_full_sq",
+             "age_house", "ratio_kitch_sq_full_sq", "ratio_floor_max_floor",
+             "sales_per_month", "ratio_kitch_sq_life_sq", "kitch_sq", "preschool_quota",
+             "area_m", "pop_density_raion",
+             "full_all", "ratio_school", "ekder_all", "num_room", "school_quota",
+             "retire_proportion", "raion_popul", "price_doc")
+
+top_feat_test = c("full_sq", "life_sq", "additional_education_km", "catering_km",
+             "big_church_km", "public_healthcare_km", "railroad_km", "preschool_km", "industrial_km", 
+             "radiation_km", "big_road1_km", "public_transport_station_km", "cemetery_km",
+             "swim_pool_km", "green_zone_km", "big_road2_km", "hospice_morgue_km", "fitness_km",
+             "kindergarten_km","extra_sq", "green_part_1000", "ratio_life_sq_full_sq",
+             "age_house", "ratio_kitch_sq_full_sq", "ratio_floor_max_floor",
+             "sales_per_month", "ratio_kitch_sq_life_sq", "kitch_sq", "preschool_quota",
+             "area_m", "pop_density_raion",
+             "full_all", "ratio_school", "ekder_all", "num_room", "school_quota",
+             "retire_proportion", "raion_popul")
+
+train_lnr = subset(train_2, select= top_feat)
+test_lnr = subset(test_2, select= top_feat_test)
+
+# train_lnr$state = factor(train_lnr$state)
+# train_lnr$sub_area = factor(train_lnr$sub_area)
+# 
+# test_lnr$state = factor(test_lnr$state)
+# test_lnr$sub_area = factor(test_lnr$sub_area)
+
+
+# scaling the numeric values
+numeric_col = train_lnr[, names(train_lnr) != c("price_doc")]   
+train_lnr[, names(train_lnr) != c("price_doc")]  = scale(numeric_col)
+
+numeric_col = test_lnr[, names(test_lnr) != c("price_doc")]   
+test_lnr[, names(test_lnr) != c("price_doc")]  = scale(numeric_col)
+
+model_5 = lm(price_doc ~ . , data = train_lnr)
+
+summary(model_5)
+prediction_5 = predict(model_5, test_lnr) 
+prediction_5 = exp(prediction_5)-1
+prediction_5 = data.frame(id=test_2$id, price_doc=prediction_5)
+write.csv(prediction_5, "prediction_5.csv", row.names=F)
+
+
+##### METHOD 6 - same as method 2 with feature engineering #####
+train_reduced_2 = read.csv("train_cleaned_2.csv", stringsAsFactors = FALSE)
+test_reduced_2 = read.csv("test_cleaned_2.csv", stringsAsFactors = FALSE)
+
+train_reduced_2 = subset(train_reduced_2, select = -c(X))
+test_reduced_2 = subset(test_reduced_2, select = -c(X))
+
+top_feat = c("state", "catering_km",
+             "big_church_km", "public_healthcare_km", "railroad_km", "preschool_km", "industrial_km", 
+             "radiation_km", "big_road1_km", "public_transport_station_km", "cemetery_km",
+             "swim_pool_km", "green_zone_km", "big_road2_km", "hospice_morgue_km", "fitness_km",
+             "kindergarten_km", "green_part_1000", "ratio_life_sq_full_sq",
+             "age_house", "ratio_kitch_sq_full_sq", "ratio_floor_max_floor",
+             "sales_per_month", "ratio_kitch_sq_life_sq", "num_room", "price_doc")
+top_feat_test = c("state", "catering_km",
+                  "big_church_km", "public_healthcare_km", "railroad_km", "preschool_km", "industrial_km", 
+                  "radiation_km", "big_road1_km", "public_transport_station_km", "cemetery_km",
+                  "swim_pool_km", "green_zone_km", "big_road2_km", "hospice_morgue_km", "fitness_km",
+                  "kindergarten_km", "green_part_1000", "ratio_life_sq_full_sq",
+                  "age_house", "ratio_kitch_sq_full_sq", "ratio_floor_max_floor",
+                  "sales_per_month", "ratio_kitch_sq_life_sq", "num_room")
+
+
+
+train_reduced_2 = subset(train_reduced_2, select = top_feat)
+test_reduced_2 = subset(test_reduced_2, select = top_feat_test)
+
+train_reduced_2$price_doc = log(train_reduced_2$price_doc+1)
+
+train_reduced_2$state = factor(train_reduced_2$state)
+train_reduced_2$sub_area = factor(train_reduced_2$sub_area)
+
+test_reduced_2$state = factor(test_reduced_2$state)
+test_reduced_2$sub_area = factor(test_reduced_2$sub_area)
+
+model_2 = lm(price_doc ~ . , data = train_reduced_2)
+
+library(car)
+summary(model_2)
+vif(model_2)
+
+prediction_6 = predict(model_2,test_reduced_2) 
+prediction_6 = exp(prediction_6)-1
+prediction_6 = data.frame(id=test$id, price_doc=prediction_6)
+write.csv(prediction_6, "prediction_6.csv", row.names=F)
+
 
 ##### Elastic Net #####
 
