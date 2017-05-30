@@ -465,8 +465,10 @@ cm[43:44, 45:46] # correlation between public_transport_station_min_walk and pub
 cm[44:45, 44:45] # correlation between public_transport_station_min_walk and public_transport_station_km 
 
 ## update the features by removing one of the highly correlated features
-# remove 'public_transport_station_min_walk' and 'railroad_station_walk_min'
-pca_features = pca_features[pca_features != c('public_transport_station_min_walk', 'railroad_station_walk_min')]
+# remove "public_transport_station_min_walk" and "railroad_station_walk_min" 
+
+pca_features = pca_features[pca_features != "public_transport_station_min_walk"]
+pca_features = pca_features[pca_features != "railroad_station_walk_min"]
 # removing price for the test subset
 pca_features_test = pca_features[pca_features!= 'price_doc']
 
